@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Spinning Vinyl HD Video Generator</title>
+
+  <style>
+    :root {
+      --bg-color: #f4f4f5;
+    }
+
+    body {
+      font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      background-color: var(--bg-color);
+      color: #18181b;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 40px 20px;
+      margin: 0;
+    }
+
+    /* Input Controls Setup */
+    .controls {
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+      margin-bottom: 30px;
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+      width: 100%;
+      max-width: 420px;
+    }
+
+    .controls label {
+      font-weight: bold;
+      font-size: 14px;
+    }
+
+    .controls input, .controls select {
+      padding: 10px;
+      border: 1px solid #d4d4d8;
+      border-radius: 6px;
+      font-size: 16px;
+    }
+
+    .row {
+      display: flex;
+      gap: 10px;
+    }
+
+    .row > div {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .export-btn {
+      background-color: #18181b;
+      color: white;
+      border: none;
+      padding: 12px;
+      border-radius: 6px;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+      margin-top: 10px;
+      transition: background 0.2s;
+    }
+
+    .export-btn:hover { background-color: #3f3f46; }
+    .export-btn:disabled { background-color: #a1a1aa; cursor: not-allowed; }
+
+    /* Visualizer Canvas Container */
+    .canvas-container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      width: 100%;
+      max-width: 500px;
+    }
+
+    canvas {
+      width: 100%;
+      height: auto;
+      max-width: 500px;
+      border-radius: 8px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Input Controls -->
+  <div class="controls">
+    <label for="imageUpload">1. Upload Cover Art</label>
+    <input type="file" id="imageUpload" accept="image/*">
+    
+    <label for="songInput">2. Song Title (Optional)</label>
+    <input type="text" id="songInput" placeholder="Leave empty for no text" value="">
+    
+    <label for="albumInput">3. Album Name (Optional)</label>
+    <input type="text" id="albumInput" placeholder="Leave empty for no text" value="">
+
+    <div class="row">
+      <div>
+        <label for="textColorInput">Text Color</label>
+        <input type="color" id="textColorInput" value="#18181b">
+      </div>
+      <div>
+        <label for="bgModeSelect">Video Background</label>
+        <select id="bgModeSelect">
+          <option value="green">Green Screen (#00FF00)</option>
+          <option value="magenta">Magenta Screen (#FF00FF)</option>
+          <option value="light">Light Grey (#f4f4f5)</option>
+          <option value="dark">Dark (#18181b)</option>
+          <option value="white">Pure White (#ffffff)</option>
+        </select>
+      </div>
+    </div>
+
+    <button id="exportBtn" class="export-btn">Export HD Video (MP4/WebM)</button>
+  </div>
+
+  <!-- Real-time HD Canvas Renderer (1080x1080) -->
+  <div class="canvas-container">
+    <canvas id="visualizerCanvas" width="1080" height="1080"></canvas>
+  </div>
+
+  <script>
+    const imageUpload = document.getElementById('imageUpload');
+    const songInput = document.getElementById('songInput');
+    const albumInput = document.getElementById('albumInput');
+    const textColorInput = document.getElementById('textColorInput');
+    const bgModeSelect = document.getElementById('bgModeSelect');
+    const exportBtn = document.getElementById('exportBtn');
+    
+    const canvas = document.getElementById('visualizerCanvas');
+    const ctx = canvas.getContext('2d');
+
+    let loadedImg = null;
+    let rotationAngle = 0;
+    const rotationSpeed = (Math.PI * 2) / (60 * 3); // 360 rotation every 3 seconds at 60 FPS
+
+    // Set Default Placeholder Image
+    function setDefaultPlaceholder() {
+      const svgString = `<svg xmlns='http://www.w3.org/2000/svg' width='400' height='400'><rect width='400' height='400' fill='%23cccccc'/><text x='50%' y='50%' fill='%23666666' font-family='sans-serif' font-size='24' text-anchor='middle' dy='.3em'>Upload Image</text></svg>`;
+      const img = new Image();
+      img.src = 'data:image/svg+xml;utf8,' + encodeURIComponent(svgString);
+      img.onload = () => { loadedImg = img; };
+    }
+    setDefaultPlaceholder();
+
+    // Handle Image Upload
+    imageUpload.addEventListener('change', function(event) {
+      const file = event.target.files[0];
+      if (file) {
+        const img = new Image();
+        img.src = URL.createObjectURL(file);
+        img.onload = () => { loadedImg = img; };
+      }
+    });
+
+    // Master Render Function
+    function drawFrame() {
+      const w = canvas.width;  // 1080px
+      const h = canvas.height; // 1080px
+      const bgMode = bgModeSelect.value;
+
+      // 1. Render Background
+      ctx.clearRect(0, 0, w, h);
+      if (bgMode === 'green') {
+        ctx.fillStyle = '#00FF00';
+      } else if (bgMode === 'magenta') {
+        ctx.fillStyle = '#FF00FF';
+      } else if (bgMode === 'light') {
+        ctx.fillStyle = '#f4f4f5';
+      } else if (bgMode === 'dark') {
+        ctx.fillStyle = '#18181b';
+      } else if (bgMode === 'white') {
+        ctx.fillStyle = '#ffffff';
+      }
+      ctx.fillRect(0, 0, w, h);
+
+      const textColor = textColorInput.value;
+
+      // 2. Draw Song Title (ONLY if input is NOT empty)
+      const songText = songInput.value.trim();
+      if (songText !== "") {
+        ctx.fillStyle = textColor;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'top';
+        ctx.font = '700 58px "Segoe UI", -apple-system, Roboto, sans-serif';
+        ctx.fillText(songText, w / 2, 90);
+      }
+
+      // 3. Draw Album Name (ONLY if input is NOT empty)
+      const albumText = albumInput.value.trim();
+      if (albumText !== "") {
+        ctx.fillStyle = textColor;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'bottom';
+        ctx.font = '500 40px "Segoe UI", -apple-system, Roboto, sans-serif';
+        ctx.globalAlpha = 0.85;
+        ctx.fillText(albumText, w / 2, h - 90);
+        ctx.globalAlpha = 1.0;
+      }
+
+      // Layout Geometry (Proportionally scaled for 1080p)
+      const sleeveSize = 540;
+      const centerY = h / 2;
+      const sleeveX = (w - sleeveSize) / 2 - 80;
+      const sleeveY = centerY - sleeveSize / 2;
+      
+      const vinylRadius = (sleeveSize - 14) / 2;
+      const vinylCenterX = sleeveX + sleeveSize / 2 + 200;
+      const vinylCenterY = centerY;
+
+      // 4. Draw Spinning Vinyl Record
+      ctx.save();
+      ctx.translate(vinylCenterX, vinylCenterY);
+      ctx.rotate(rotationAngle);
+
+      // Vinyl Drop Shadow
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.4)';
+      ctx.shadowBlur = 25;
+
+      // Base Black Record Circle
+      ctx.beginPath();
+      ctx.arc(0, 0, vinylRadius, 0, Math.PI * 2);
+      ctx.fillStyle = '#111111';
+      ctx.fill();
+      ctx.shadowColor = 'transparent';
+
+      // Grooves
+      ctx.strokeStyle = '#222222';
+      ctx.lineWidth = 2;
+      for (let r = vinylRadius * 0.4; r < vinylRadius - 8; r += 9) {
+        ctx.beginPath();
+        ctx.arc(0, 0, r, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+
+      // Center Sticker Label
+      const labelRadius = vinylRadius * 0.35;
+      if (loadedImg) {
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(0, 0, labelRadius, 0, Math.PI * 2);
+        ctx.clip();
+        ctx.drawImage(loadedImg, -labelRadius, -labelRadius, labelRadius * 2, labelRadius * 2);
+        ctx.restore();
+      }
+
+      // Spindle Center Hole
+      ctx.beginPath();
+      ctx.arc(0, 0, 14, 0, Math.PI * 2);
+      ctx.fillStyle = '#111111';
+      ctx.fill();
+      ctx.strokeStyle = '#333333';
+      ctx.lineWidth = 3;
+      ctx.stroke();
+
+      ctx.restore();
+
+      // 5. Draw Sleeve (Layered In Front)
+      ctx.save();
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.35)';
+      ctx.shadowBlur = 30;
+      ctx.shadowOffsetX = 12;
+      ctx.shadowOffsetY = 6;
+
+      const cornerRadius = 10;
+      ctx.beginPath();
+      if (ctx.roundRect) {
+        ctx.roundRect(sleeveX, sleeveY, sleeveSize, sleeveSize, cornerRadius);
+      } else {
+        ctx.rect(sleeveX, sleeveY, sleeveSize, sleeveSize);
+      }
+      ctx.fillStyle = '#e4e4e7';
+      ctx.fill();
+      ctx.shadowColor = 'transparent';
+
+      if (loadedImg) {
+        ctx.save();
+        ctx.beginPath();
+        if (ctx.roundRect) {
+          ctx.roundRect(sleeveX, sleeveY, sleeveSize, sleeveSize, cornerRadius);
+        } else {
+          ctx.rect(sleeveX, sleeveY, sleeveSize, sleeveSize);
+        }
+        ctx.clip();
+        ctx.drawImage(loadedImg, sleeveX, sleeveY, sleeveSize, sleeveSize);
+        ctx.restore();
+      }
+      ctx.restore();
+    }
+
+    // Continuous 60fps Animation Loop
+    function animate() {
+      rotationAngle += rotationSpeed;
+      drawFrame();
+      requestAnimationFrame(animate);
+    }
+    animate();
+
+    // Export Video via MediaRecorder API
+    exportBtn.addEventListener('click', function() {
+      exportBtn.disabled = true;
+      exportBtn.innerText = "Recording HD Video (3s)...";
+
+      const stream = canvas.captureStream(60);
+      
+      let mimeType = 'video/webm';
+      if (MediaRecorder.isTypeSupported('video/mp4')) {
+        mimeType = 'video/mp4';
+      } else if (MediaRecorder.isTypeSupported('video/webm;codecs=vp9')) {
+        mimeType = 'video/webm;codecs=vp9';
+      }
+
+      const recorder = new MediaRecorder(stream, {
+        mimeType: mimeType,
+        videoBitsPerSecond: 12000000 // 12 Mbps for 1080p clarity
+      });
+
+      const chunks = [];
+      recorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
+
+      recorder.onstop = () => {
+        const blob = new Blob(chunks, { type: mimeType });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        const ext = mimeType.includes('mp4') ? 'mp4' : 'webm';
+        
+        link.href = url;
+        link.download = `spinning-vinyl-1080p.${ext}`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        exportBtn.disabled = false;
+        exportBtn.innerText = "Export HD Video (MP4/WebM)";
+      };
+
+      recorder.start();
+      setTimeout(() => {
+        recorder.stop();
+      }, 3000);
+    });
+  </script>
+
+</body>
+</html>
