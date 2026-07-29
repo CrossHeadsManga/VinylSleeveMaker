@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>CrossHeads Vinyl Sleeve Maker</title>
+  <title>CrossHeads Vinyl + Sleeve Generator</title>
 
   <style>
     :root {
@@ -90,6 +90,33 @@
       max-width: 500px;
       border-radius: 8px;
     }
+
+    /* Example Preview Section */
+    .example-section {
+      margin-top: 40px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 100%;
+      max-width: 500px;
+    }
+
+    .example-title {
+      font-size: 16px;
+      font-weight: bold;
+      color: #71717a;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 12px;
+    }
+
+    .example-img {
+      width: 100%;
+      max-width: 500px;
+      height: auto;
+      border-radius: 8px;
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    }
   </style>
 </head>
 <body>
@@ -100,15 +127,15 @@
     <input type="file" id="imageUpload" accept="image/*">
     
     <label for="songInput">2. Song Title (Optional)</label>
-    <input type="text" id="songInput" placeholder="Leave empty for no text" value="">
+    <input type="text" id="songInput" placeholder="Leave empty for no text" value="Tori no Uta">
     
     <label for="albumInput">3. Album Name (Optional)</label>
-    <input type="text" id="albumInput" placeholder="Leave empty for no text" value="">
+    <input type="text" id="albumInput" placeholder="Leave empty for no text" value="Air">
 
     <div class="row">
       <div>
         <label for="textColorInput">Text Color</label>
-        <input type="color" id="textColorInput" value="#18181b">
+        <input type="color" id="textColorInput" value="#fca5a5">
       </div>
       <div>
         <label for="bgModeSelect">Video Background</label>
@@ -130,6 +157,12 @@
     <canvas id="visualizerCanvas" width="1080" height="1080"></canvas>
   </div>
 
+  <!-- Example Output Preview -->
+  <div class="example-section">
+    <div class="example-title">Example Finished Product</div>
+    <img class="example-img" id="exampleImg" alt="Finished Product Example" src="">
+  </div>
+
   <script>
     const imageUpload = document.getElementById('imageUpload');
     const songInput = document.getElementById('songInput');
@@ -145,14 +178,18 @@
     let rotationAngle = 0;
     const rotationSpeed = (Math.PI * 2) / (60 * 3); // 360 rotation every 3 seconds at 60 FPS
 
-    // Set Default Placeholder Image
-    function setDefaultPlaceholder() {
-      const svgString = `<svg xmlns='http://www.w3.org/2000/svg' width='400' height='400'><rect width='400' height='400' fill='%23cccccc'/><text x='50%' y='50%' fill='%23666666' font-family='sans-serif' font-size='24' text-anchor='middle' dy='.3em'>Upload Image</text></svg>`;
+    // Embedded Base64 Image Placeholder (Replace or update if needed)
+    const sampleImageBase64 = "ToriNoUta.webp"
+    // Set sample placeholder image from Base64
+    function setSamplePlaceholder() {
       const img = new Image();
-      img.src = 'data:image/svg+xml;utf8,' + encodeURIComponent(svgString);
-      img.onload = () => { loadedImg = img; };
+      img.src = sampleImageBase64;
+      img.onload = () => { 
+        loadedImg = img; 
+        document.getElementById('exampleImg').src = sampleImageBase64;
+      };
     }
-    setDefaultPlaceholder();
+    setSamplePlaceholder();
 
     // Handle Image Upload
     imageUpload.addEventListener('change', function(event) {
