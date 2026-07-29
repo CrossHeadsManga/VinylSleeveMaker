@@ -113,10 +113,10 @@
       <div>
         <label for="bgModeSelect">Video Background</label>
         <select id="bgModeSelect">
+          <option value="dark">Dark (#18181b)</option>
           <option value="green">Green Screen (#00FF00)</option>
           <option value="magenta">Magenta Screen (#FF00FF)</option>
           <option value="light">Light Grey (#f4f4f5)</option>
-          <option value="dark">Dark (#18181b)</option>
           <option value="white">Pure White (#ffffff)</option>
         </select>
       </div>
@@ -193,7 +193,7 @@
         ctx.fillStyle = textColor;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'top';
-        ctx.font = '700 58px "Segoe UI", -apple-system, Roboto, sans-serif';
+        ctx.font = '700 80px "Segoe UI", -apple-system, Roboto, sans-serif';
         ctx.fillText(songText, w / 2, 90);
       }
 
@@ -203,7 +203,7 @@
         ctx.fillStyle = textColor;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'bottom';
-        ctx.font = '500 40px "Segoe UI", -apple-system, Roboto, sans-serif';
+        ctx.font = '500 65px "Segoe UI", -apple-system, Roboto, sans-serif';
         ctx.globalAlpha = 0.85;
         ctx.fillText(albumText, w / 2, h - 90);
         ctx.globalAlpha = 1.0;
